@@ -14,7 +14,6 @@ class Camera(BaseModel):
     modelName: Optional[str]
     project: Optional[dict]
     location: Optional[dict]
-    id: Optional[str]
     model: Optional[str]
     description: Optional[str]
     adjustableCoverage: Optional[bool]  # TODO: Should add a positioning system 
@@ -30,9 +29,8 @@ class Camera(BaseModel):
             "example": {
                 "thumbnailUrl": "http://example.com/thumbnail.jpg",
                 "modelName": "Model XYZ",
-                "project": {"id": 1, "name": "Project Alpha"},
+                "project": {"id": "6661ad4c839f321df5b839a8", "name": "Project Alpha"},
                 "location": {"lat": 40.7128, "lng": -74.0060},
-                "id": "1",
                 "model": "Model ABC",
                 "description": "Description of the camera",
                 "adjustableCoverage": True,
