@@ -1,174 +1,203 @@
 import motor.motor_asyncio
 from bson.objectid import ObjectId
 from datetime import datetime
-import pandas as pd
 from typing import List
-from server.externel.email import send_email 
- 
-from os import environ as env
+#from server.external.email import send_email
 
+from os import environ as env
 
 MONGO_DETAILS = env.get('MONGO_DETAILS')
 
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
 
-database = client.translation
+database = client.cam
+
+################################################# Project ########################################
+
+project_collection = database.get_collection("projects")
 
 
-#################################################   Document ########################################
-document_collection = database.get_collection("documents")
-
-# helpers
-
-def document_helper(document) -> dict:
+def project_helper(project) -> dict:
     return {
-        "id": str(document["_id"]),
-        "name": document["name"],
-        "description": document["description"],
-        "createdAt": document.get("createdAt", None),
-        "updatedAt": document.get("updatedAt", None), 
-
+        "id": str(project["_id"]),
+        "hash": project["hash"],
+        "name": project["name"],
+        "hasAlerts": project["hasAlerts"],
+        "status": project.get("status"),
+        "insertedAt": project.get("insertedAt"),
+        "startedAt": project.get("startedAt"),
+        "camerasCount": project.get("camerasCount"),
+        "cameras": project.get("cameras"),
+        "sensors": project.get("sensors")
     }
-    
-
-# Retrieve all documents present in the database
-async def retrieve_documents():
-    documents = []
-    async for document in document_collection.find():
-        documents.append(document_helper(document))
-    return documents
 
 
-# Add a new document into the database
-async def add_document(document_data: dict) -> dict:
-    document_data["created_at"] = datetime.utcnow()
-    document_data["updated_at"] = datetime.utcnow()
-    
-    document = await document_collection.insert_one(document_data)
-    new_document = await document_collection.find_one({"_id": document.inserted_id})
-    return document_helper(new_document)
-
-# Retrieve a document with a matching ID
-async def retrieve_document(id: str) -> dict:
-    document = await document_collection.find_one({"_id": ObjectId(id)})
-    if document:
-        return document_helper(document)
+async def retrieve_projects():
+    projects = []
+    async for project in project_collection.find():
+        projects.append(project_helper(project))
+    return projects
 
 
-# Update a document with a matching ID
-async def update_document(id: str, data: dict):
-    # Return false if an empty request body is sent.
+async def add_project(project_data: dict) -> dict:
+    project_data["insertedAt"] = datetime.utcnow()
+    project_data["startedAt"] = datetime.utcnow()
+
+    project = await project_collection.insert_one(project_data)
+    new_project = await project_collection.find_one({"_id": project.inserted_id})
+    return project_helper(new_project)
+
+
+async def retrieve_project(id: str) -> dict:
+    project = await project_collection.find_one({"_id": ObjectId(id)})
+    if project:
+        return project_helper(project)
+
+
+async def update_project(id: str, data: dict):
     if len(data) < 1:
         return False
-    
-    data["updated_at"] = datetime.utcnow()
-    
-    document = await document_collection.find_one({"_id": ObjectId(id)})
-    if document:
-        updated_document = await document_collection.update_one(
+
+    data["updatedAt"] = datetime.utcnow()
+
+    project = await project_collection.find_one({"_id": ObjectId(id)})
+    if project:
+        updated_project = await project_collection.update_one(
             {"_id": ObjectId(id)}, {"$set": data}
         )
-        if updated_document:
+        if updated_project:
             return True
         return False
 
 
-# Delete a document from the database
-async def delete_document(id: str):
-    document = await document_collection.find_one({"_id": ObjectId(id)})
-    if document:
-        await document_collection.delete_one({"_id": ObjectId(id)})
+async def delete_project(id: str):
+    project = await project_collection.find_one({"_id": ObjectId(id)})
+    if project:
+        await project_collection.delete_one({"_id": ObjectId(id)})
         return True
-    
-    
-
-######################################  translation ############################
-
-translation_collection = database.get_collection("translations")
 
 
-def translation_helper(translation) -> dict:
+################################################# Camera ########################################
+
+camera_collection = database.get_collection("cameras")
+
+
+def camera_helper(camera) -> dict:
     return {
-        "id": str(translation["_id"]),
-        "client_id": str(translation["client_id"]),
-        "work_status": translation["work_status"],
-        "payment_status": translation["payment_status"],
-        "discount": translation["discount"],
-        "total_without_discount": translation["total_without_discount"],
-        "total": translation["total"],
-        "rest": translation["rest"],
-        "payment": translation["payment"],
-        "created_at": translation.get("created_at", None),
-        "updated_at": translation.get("updated_at", None),
-        "documents": translation["documents"],
-        "payments": translation["payments"]
+        "id": str(camera["_id"]),
+        "thumbnailUrl": camera["thumbnailUrl"],
+        "modelName": camera["modelName"],
+        "project": camera.get("project"),
+        "location": camera.get("location"),
+        "model": camera.get("model"),
+        "description": camera.get("description"),
+        "adjustableCoverage": camera.get("adjustableCoverage"),
+        "status": camera["status"],
+        "isOnline": camera.get("isOnline"),
+        "offlineReason": camera.get("offlineReason"),
+        "lastOnlineAt": camera.get("lastOnlineAt"),
+        "name": camera.get("name"),
+        "createdAt": camera.get("createdAt")
     }
 
 
-async def retrieve_translations() -> List[dict]:
-    translations = []
-    async for translation in translation_collection.find():
-        translations.append(translation_helper(translation))
-    return translations
+async def retrieve_cameras():
+    cameras = []
+    async for camera in camera_collection.find():
+        cameras.append(camera_helper(camera))
+    return cameras
 
 
-async def add_translation(translation_data: dict) -> dict:
-    translation_data["created_at"] = datetime.utcnow()
-    translation_data["updated_at"] = datetime.utcnow()
+async def add_camera(camera_data: dict) -> dict:
+    camera_data["createdAt"] = datetime.utcnow()
 
-    translation = await translation_collection.insert_one(translation_data)
-    new_translation = await translation_collection.find_one({"_id": translation.inserted_id})
-    return translation_helper(new_translation)
-
-
-async def retrieve_translation(id: str) -> dict:
-    translation = await translation_collection.find_one({"_id": ObjectId(id)})
-    if translation:
-        return translation_helper(translation)
+    camera = await camera_collection.insert_one(camera_data)
+    new_camera = await camera_collection.find_one({"_id": camera.inserted_id})
+    return camera_helper(new_camera)
 
 
-async def update_translation(id: str, data: dict):
+async def retrieve_camera(id: str) -> dict:
+    camera = await camera_collection.find_one({"_id": ObjectId(id)})
+    if camera:
+        return camera_helper(camera)
+
+
+async def update_camera(id: str, data: dict):
     if len(data) < 1:
         return False
 
-    # Add current datetime
-    current_datetime = datetime.utcnow()
-    data["updated_at"] = current_datetime
+    data["updatedAt"] = datetime.utcnow()
 
-    #Prepare payment data to be appended to payments array
-    payment_data = {
-        "price":  data["payment"],
-        "created_at": current_datetime
-    }
-
-    # Find the translation
-    translation = await translation_collection.find_one({"_id": ObjectId(id)})
-    if translation:
-        # Merging existing payments with new payment
-        payments = translation.get('payments', [])
-        payments.append(payment_data)
-        data["payments"] = payments
-        old_payment = translation.get('payment')
-        new_payment = old_payment + data["payment"]
-        data["payment"] = new_payment
-        # Update the translation
-        updated_translation = await translation_collection.update_one(
+    camera = await camera_collection.find_one({"_id": ObjectId(id)})
+    if camera:
+        updated_camera = await camera_collection.update_one(
             {"_id": ObjectId(id)}, {"$set": data}
         )
-
-        if updated_translation:
-            send_email(payment_data["price"])
+        if updated_camera:
             return True
-
-    return False
-
+        return False
 
 
-async def delete_translation(id: str):
-    translation = await translation_collection.find_one({"_id": ObjectId(id)})
-    if translation:
-        await translation_collection.delete_one({"_id": ObjectId(id)})
+async def delete_camera(id: str):
+    camera = await camera_collection.find_one({"_id": ObjectId(id)})
+    if camera:
+        await camera_collection.delete_one({"_id": ObjectId(id)})
         return True
-    
-    
 
+
+################################################# Sensor ########################################
+
+sensor_collection = database.get_collection("sensors")
+
+
+def sensor_helper(sensor) -> dict:
+    return {
+        "id": str(sensor["_id"]),
+        "model": sensor["model"],
+        "name": sensor["name"],
+        "type": sensor["type"],
+        "status": sensor["status"],
+        "project": sensor.get("project"),
+        "location": sensor.get("location"),
+        "description": sensor.get("description"),
+    }
+
+
+async def retrieve_sensors():
+    sensors = []
+    async for sensor in sensor_collection.find():
+        sensors.append(sensor_helper(sensor))
+    return sensors
+
+
+async def add_sensor(sensor_data: dict) -> dict:
+    sensor = await sensor_collection.insert_one(sensor_data)
+    new_sensor = await sensor_collection.find_one({"_id": sensor.inserted_id})
+    return sensor_helper(new_sensor)
+
+
+async def retrieve_sensor(id: str) -> dict:
+    sensor = await sensor_collection.find_one({"_id": ObjectId(id)})
+    if sensor:
+        return sensor_helper(sensor)
+
+
+async def update_sensor(id: str, data: dict):
+    if len(data) < 1:
+        return False
+
+    sensor = await sensor_collection.find_one({"_id": ObjectId(id)})
+    if sensor:
+        updated_sensor = await sensor_collection.update_one(
+            {"_id": ObjectId(id)}, {"$set": data}
+        )
+        if updated_sensor:
+            return True
+        return False
+
+
+async def delete_sensor(id: str):
+    sensor = await sensor_collection.find_one({"_id": ObjectId(id)})
+    if sensor:
+        await sensor_collection.delete_one({"_id": ObjectId(id)})
+        return True

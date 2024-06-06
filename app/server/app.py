@@ -7,14 +7,17 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 
-from server.routes.document import router as DocumentSchema
-from server.routes.translation import router as TranslationSchema
+from server.routes.project import router as ProjectSchema
+from server.routes.camera import router as CameraSchema
+from server.routes.sensor import router as SensorSchema
 
 
 app = FastAPI()
 
-app.include_router(DocumentSchema, tags=["Document"], prefix="/document")
-app.include_router(TranslationSchema, tags=["Translation"], prefix="/translation")
+app.include_router(ProjectSchema, tags=["Project"], prefix="/project")
+app.include_router(CameraSchema, tags=["Camera"], prefix="/camera")
+app.include_router(SensorSchema, tags=["Sensor"], prefix="/sensor")
+
 
 
 
